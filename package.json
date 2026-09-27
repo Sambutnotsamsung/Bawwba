@@ -1,0 +1,8 @@
+{
+  "name": "bawwaba-ios-webview-compatible",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "check": "node --check public/ios-webview-enhancements.js"
+  }
+}
