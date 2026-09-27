@@ -1,0 +1,208 @@
+html,
+body {
+  overscroll-behavior: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+body {
+  -webkit-tap-highlight-color: transparent;
+}
+
+input,
+textarea,
+[contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+button,
+[role="button"],
+a,
+select,
+summary {
+  min-height: 44px;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+button,
+[role="button"] {
+  touch-action: manipulation;
+}
+
+@media (max-width: 767px) {
+  body {
+    padding-bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+
+  .ios-bottom-nav {
+    position: fixed;
+    z-index: 50;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.25rem;
+    padding: 0.5rem 0.75rem calc(0.5rem + env(safe-area-inset-bottom));
+    border-top: 1px solid hsl(var(--border) / 0.8);
+    background: hsl(var(--background) / 0.94);
+    box-shadow: 0 -10px 30px hsl(var(--foreground) / 0.08);
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
+  }
+
+  .ios-bottom-nav__item {
+    display: flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    border-radius: 0.85rem;
+    color: hsl(var(--muted-foreground));
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+
+  .ios-bottom-nav__item[data-active="true"] {
+    background: hsl(var(--secondary));
+    color: hsl(var(--foreground));
+  }
+
+  .ios-bottom-nav__icon {
+    display: inline-flex;
+    width: 1.25rem;
+    height: 1.25rem;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+  }
+}
+
+.ios-settings-sheet__backdrop {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: hsl(var(--foreground) / 0.42);
+  padding: 1rem;
+}
+
+.ios-settings-sheet {
+  width: min(100%, 32rem);
+  max-height: min(78svh, 42rem);
+  overflow: auto;
+  border: 1px solid hsl(var(--border));
+  border-radius: 1.5rem;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  padding: 1.25rem;
+  padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+  box-shadow: 0 24px 80px hsl(var(--foreground) / 0.24);
+}
+
+.ios-settings-sheet__handle {
+  width: 2.5rem;
+  height: 0.25rem;
+  margin: 0 auto 1rem;
+  border-radius: 999px;
+  background: hsl(var(--muted-foreground) / 0.35);
+}
+
+.ios-settings-sheet__danger {
+  width: 100%;
+  margin-top: 1rem;
+  border: 1px solid hsl(var(--destructive) / 0.35);
+  border-radius: 0.85rem;
+  background: hsl(var(--destructive) / 0.08);
+  color: hsl(var(--destructive));
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 700;
+}
+
+.ios-settings-sheet__danger:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.ios-native-select {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  opacity: 0;
+}
+
+.ios-select {
+  position: relative;
+  min-width: 7.5rem;
+}
+
+.ios-select__trigger {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  background: hsl(var(--background));
+  padding: 0.625rem 0.875rem;
+  color: hsl(var(--foreground));
+  font-size: 0.875rem;
+  text-align: left;
+}
+
+.ios-select__trigger:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+.ios-select__chevron {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.75rem;
+}
+
+.ios-select__content {
+  position: absolute;
+  z-index: 60;
+  right: 0;
+  bottom: calc(100% + 0.35rem);
+  left: 0;
+  display: none;
+  overflow: hidden;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  background: hsl(var(--popover));
+  padding: 0.25rem;
+  box-shadow: 0 12px 28px hsl(var(--foreground) / 0.15);
+}
+
+.ios-select[data-open="true"] .ios-select__content {
+  display: block;
+}
+
+.ios-select__option {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  color: hsl(var(--popover-foreground));
+  text-align: left;
+}
+
+.ios-select__option:hover,
+.ios-select__option[aria-selected="true"] {
+  background: hsl(var(--accent));
+}
