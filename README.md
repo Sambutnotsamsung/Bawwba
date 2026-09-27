@@ -20,9 +20,15 @@ small runtime layer in `public/ios-webview-enhancements.js` and
 
 ## Free hosting
 
-The app is static and can be served from GitHub Pages. Enable Pages for the
-repository with the `public/` directory as the deployment source, or serve the
-`public/` directory with any static host.
+The app is static and can be served from GitHub Pages. The same deployable
+files are mirrored at the repository root so Pages can use:
+
+- **Settings → Pages → Deploy from a branch**
+- Branch: `main`
+- Folder: `/ (root)`
+
+The `public/` directory remains the canonical source for static hosting and
+local preview.
 
 The compatibility layer keeps the existing Base44 app ID and API as the
 backend, so the original data and authentication service are not replaced.
