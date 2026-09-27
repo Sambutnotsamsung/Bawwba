@@ -1,7 +1,0 @@
-package.json
-src/
-  App.jsx
-  index.css
-  components/
-    AppLayout.jsx
-    VehicleForm.jsx
