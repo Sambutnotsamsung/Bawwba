@@ -1,34 +1,51 @@
-# Bawwaba iOS WebView compatibility copy
+# Bawwaba
 
-This repository contains a static compatibility copy of the publicly deployed
-Bawwaba React bundle. The original Base44 source export was not available, so
-the shipped bundle is preserved and the requested changes are implemented as a
-small runtime layer in `public/ios-webview-enhancements.js` and
-`public/ios-webview.css`.
+License-plate school pickup console. Cameras read plates at the gate, the app matches them to registered guardians, and staff release the right students. English and Arabic (RTL), installable on phones and gate tablets, works offline for the app shell.
 
-## Included changes
+## Features
+- **Gate:** live "at the gate" card, stats, recent scans, manual plate lookup
+- **Pickup board:** released cars with student names, "Handed over" check-off, full-screen display
+- **Review queue:** low-confidence reads wait for staff to release or hold, with undo
+- **Vehicles:** register, search (plate, guardian or student) and remove, with plate-format and duplicate checks
+- **Log and chart:** every scan, plus scans per minute
+- **Settings:** auto-release confidence threshold, alert sound and vibration
 
-- Prevents rubber-band overscroll and iOS touch callouts.
-- Follows the device light/dark preference using the app's existing `.dark`
-  design tokens.
-- Adds mobile Home, Registry, and Settings navigation with safe-area padding.
-- Adds a profile/settings sheet with a destructive account deletion action and
-  explicit data-loss warning.
-- Replaces the Vehicle registry's native select interaction with an accessible
-  shadcn-style button/listbox control.
-- Applies non-selectable interaction styling and 44px minimum touch targets.
+## Run locally
+```bash
+python3 -m http.server 8080
+# open http://localhost:8080
+```
+Service workers need `localhost` or HTTPS, so do not open `index.html` as a file.
 
-## Free hosting
+## Deploy to GitHub Pages
+```bash
+git init -b main
+git add .
+git commit -m "Bawwaba pickup console"
+git remote add origin https://github.com/<you>/bawwaba.git
+git push -u origin main
+```
+Then in the repo go to **Settings > Pages > Source: GitHub Actions**. The workflow in `.github/workflows/pages.yml` checks the JavaScript and publishes the site on every push to `main`.
 
-The app is static and can be served from GitHub Pages. The same deployable
-files are mirrored at the repository root so Pages can use:
+## Connect to Base44 (optional)
+Without `config.js` the app runs on demo data. To use your Base44 `Vehicle` and `LprEvent` entities, copy `config.example.js` to `config.js` and fill in the app ID and key. In live mode the app loads vehicles, polls `LprEvent` every 3 seconds, writes manual lookups, and updates `status` when staff release or hold.
 
-- **Settings → Pages → Deploy from a branch**
-- Branch: `main`
-- Folder: `/ (root)`
+**Read this first:** anything in `config.js` is visible to every visitor of the site. Use a key limited to these entities, never an admin key, and do not commit `config.js` (it is git-ignored, so the GitHub Pages build will not include it). For a real school deployment, put the keys behind a backend function or serve the app from a private network. Verify the base URL and header name in `src/adapter.js` against your Base44 API docs, and check that Base44 allows requests from your site's origin.
 
-The `public/` directory remains the canonical source for static hosting and
-local preview.
+"Handed over" is stored per device in live mode. To share it across gate tablets, add a `handed_over` boolean to `LprEvent` and update `mark()` in `app.js`.
 
-The compatibility layer keeps the existing Base44 app ID and API as the
-backend, so the original data and authentication service are not replaced.
+## Structure
+```
+index.html          app shell
+styles.css          styles
+app.js              app logic (demo data, UI, i18n)
+src/adapter.js      Base44 connection (off by default)
+sw.js               offline cache
+manifest.webmanifest, icons/
+.github/workflows/pages.yml
+```
+
+## Roadmap
+Staff login with admin/user roles from the `User` entity, a shared handed-over field, and a real camera-to-`LprEvent` bridge.
+
+MIT licensed.
