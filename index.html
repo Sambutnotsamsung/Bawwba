@@ -1,37 +1,49 @@
-<!DOCTYPE html>
-<html lang="en" dir="ltr">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bawwaba | School pickup gate</title>
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
-<meta name="theme-color" content="#1E2733">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Bawwaba">
-<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css">
-</head>
-<body>
-<div id="splash"><div><i></i><b data-t="brand">Bawwaba</b><div style="color:#B8C2D0;font-weight:300" data-t="tag">School pickup gate</div></div></div>
-<header>
- <div class="top">
-  <div class="brand"><i></i><div><span data-t="brand">Bawwaba</span><small data-t="tag">School pickup gate</small></div></div>
-  <div class="hb">
-   <div class="live" id="live"><span class="dot"></span><span id="livet"></span></div>
-   <button class="pill" id="lang">العربية</button>
-  </div>
- </div>
- <nav role="tablist" id="tabs"></nav>
-</header>
-<main id="main"></main>
-<div class="toast" id="toast" role="status"></div>
+const VERSION = "bawwaba-v2";
+const SHELL = [
+  "./",
+  "index.html",
+  "styles.css",
+  "app.js",
+  "adapter.js",
+  "src/adapter.js",
+  "manifest.webmanifest",
+  "icons/icon.svg",
+  "icons/icon-192.png",
+  "icons/icon-512.png"
+];
 
-<script src="config.js"></script>
-<script src="src/adapter.js"></script>
-<script src="app.js"></script>
-</body>
-</html>
+self.addEventListener("install", function (event) {
+  event.waitUntil(
+    caches.open(VERSION).then(function (cache) {
+      return cache.addAll(SHELL);
+    }).then(function () {
+      return self.skipWaiting();
+    })
+  );
+});
+
+self.addEventListener("activate", function (event) {
+  event.waitUntil(
+    caches.keys().then(function (keys) {
+      return Promise.all(keys.filter(function (key) { return key !== VERSION; }).map(function (key) { return caches.delete(key); }));
+    }).then(function () {
+      return self.clients.claim();
+    })
+  );
+});
+
+self.addEventListener("fetch", function (event) {
+  var request = event.request;
+  var url = new URL(request.url);
+  if (request.method !== "GET" || url.origin !== location.origin) return;
+
+  event.respondWith(
+    fetch(request).then(function (response) {
+      var clone = response.clone();
+      caches.open(VERSION).then(function (cache) { cache.put(request, clone); });
+      return response;
+    }).catch(function () {
+      return caches.match(request).then(function (match) { return match || caches.match("./"); });
+    })
+  );
+});
