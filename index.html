@@ -1,49 +1,14 @@
-const VERSION = "bawwaba-v2";
-const SHELL = [
-  "./",
-  "index.html",
-  "styles.css",
-  "app.js",
-  "adapter.js",
-  "src/adapter.js",
-  "manifest.webmanifest",
-  "icons/icon.svg",
-  "icons/icon-192.png",
-  "icons/icon-512.png"
-];
-
-self.addEventListener("install", function (event) {
-  event.waitUntil(
-    caches.open(VERSION).then(function (cache) {
-      return cache.addAll(SHELL);
-    }).then(function () {
-      return self.skipWaiting();
-    })
-  );
-});
-
-self.addEventListener("activate", function (event) {
-  event.waitUntil(
-    caches.keys().then(function (keys) {
-      return Promise.all(keys.filter(function (key) { return key !== VERSION; }).map(function (key) { return caches.delete(key); }));
-    }).then(function () {
-      return self.clients.claim();
-    })
-  );
-});
-
-self.addEventListener("fetch", function (event) {
-  var request = event.request;
-  var url = new URL(request.url);
-  if (request.method !== "GET" || url.origin !== location.origin) return;
-
-  event.respondWith(
-    fetch(request).then(function (response) {
-      var clone = response.clone();
-      caches.open(VERSION).then(function (cache) { cache.put(request, clone); });
-      return response;
-    }).catch(function () {
-      return caches.match(request).then(function (match) { return match || caches.match("./"); });
-    })
-  );
-});
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bawwaba</title>
+    <meta name="theme-color" content="#1e2733" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="app"></div>
+    <script src="app.js"></script>
+  </body>
+</html>

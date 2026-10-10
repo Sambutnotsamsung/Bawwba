@@ -1,138 +1,714 @@
-:root{
-  --bus:#FFC72C;
-  --slate:#1E2733;
-  --go:#12A150;
-  --go-bg:#DDF5E7;
-  --wait:#C77700;
-  --wait-bg:#FFEFCC;
-  --stop:#D6322E;
-  --stop-bg:#FDE1E0;
-  --none:#5B6676;
-  --none-bg:#E8EBF0;
-  --bg:#F3F4F6;
-  --card:#ffffff;
-  --fg:#1E2733;
-  --mute:#5B6676;
-  --line:#DCE0E6;
-  --shadow:0 18px 38px rgba(20,30,42,.08);
-  box-sizing:border-box;
-  padding-top:env(safe-area-inset-top, 0px);
-  padding-bottom:env(safe-area-inset-bottom, 0px);
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#10151C;
-    --card:#1A222D;
-    --fg:#EEF1F5;
-    --mute:#9AA5B5;
-    --line:#2C3745;
-    --go-bg:#0F3A24;
-    --wait-bg:#47340A;
-    --stop-bg:#4A1A19;
-    --none-bg:#2A3441;
-    --shadow:0 18px 38px rgba(2,4,8,.4);
+(function () {
+  const STORAGE_KEY = 'bawwaba-v2-state';
+  const DEMO_USERS = [
+    { id: 'admin-1', username: 'admin', password: 'admin123', role: 'admin', name: 'School Admin' },
+    { id: 'gate-1', username: 'gate', password: 'gate123', role: 'gate', name: 'Gate Staff' },
+    { id: 'office-1', username: 'office', password: 'office123', role: 'office', name: 'Office Desk' }
+  ];
+
+  const DEMO_VEHICLES = [
+    { id: 'v1', raw: 'أ ب ج ١٢٣٤', code: 'ABJ-1234', guardian: 'Khalid Al-Mansoori', relation: 'Father', students: ['Omar', 'Layla'] },
+    { id: 'v2', raw: 'د هـ و ٥٦٧٨', code: 'DHW-5678', guardian: 'Mariam Al-Suwaidi', relation: 'Mother', students: ['Yousef'] },
+    { id: 'v3', raw: 'ز ح ط ٩٠١٢', code: 'ZHT-9012', guardian: 'Saeed Ahmed', relation: 'Driver', students: ['Noor', 'Hamad', 'Sara'] },
+    { id: 'v4', raw: 'ي ك ل ٣٤٥٦', code: 'YKL-3456', guardian: 'Fatima Al-Hosani', relation: 'Mother', students: ['Rashid'] },
+    { id: 'v5', raw: 'م ن س ٧٨٩٠', code: 'MNS-7890', guardian: 'Ali Hassan', relation: 'Relative', students: ['Aisha'] },
+    { id: 'v6', raw: 'ع ف ص ٢٣٤٥', code: 'AFS-2345', guardian: 'Hind Al-Kaabi', relation: 'Mother', students: ['Majid', 'Dana'] }
+  ];
+
+  const state = (() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+      return {
+        lang: 'en',
+        user: null,
+        activeTab: 'gate',
+        query: '',
+        vehicles: saved && Array.isArray(saved.vehicles) && saved.vehicles.length ? saved.vehicles : DEMO_VEHICLES,
+        scans: saved && Array.isArray(saved.scans) ? saved.scans : [],
+        nextId: saved && saved.nextId ? saved.nextId : 200,
+        threshold: saved && saved.threshold ? saved.threshold : 0.9,
+        sound: saved && saved.sound !== undefined ? saved.sound : true,
+        ...saved
+      };
+    } catch (error) {
+      return {
+        lang: 'en',
+        user: null,
+        activeTab: 'gate',
+        query: '',
+        vehicles: DEMO_VEHICLES,
+        scans: [],
+        nextId: 200,
+        threshold: 0.9,
+        sound: true
+      };
+    }
+  })();
+
+  const app = document.getElementById('app');
+  const translations = {
+    en: {
+      appName: 'Bawwaba',
+      subtitle: 'School pickup gate',
+      loginTitle: 'School access dashboard',
+      username: 'Username',
+      password: 'Password',
+      signIn: 'Sign in',
+      gate: 'Gate',
+      board: 'Board',
+      vehicles: 'Vehicles',
+      log: 'Log',
+      dashboard: 'Dashboard',
+      logout: 'Log out',
+      autoRelease: 'Auto-release threshold',
+      sound: 'Sound alerts',
+      search: 'Search vehicle, guardian or student',
+      manualLookup: 'Manual lookup',
+      simulateScan: 'Simulate scan',
+      recentScans: 'Recent scans',
+      noScans: 'No scans yet.',
+      release: 'Release',
+      hold: 'Hold',
+      registerVehicle: 'Register vehicle',
+      plateArabic: 'Plate (Arabic)',
+      plateCode: 'Code (ABJ-1234)',
+      guardianName: 'Guardian name',
+      relation: 'Relation',
+      students: 'Students',
+      addVehicle: 'Add vehicle',
+      save: 'Save',
+      overview: 'Overview',
+      pendingReview: 'Pending review',
+      releasedToday: 'Released today',
+      unknownPlates: 'Unknown plates',
+      avgConfidence: 'Avg. confidence',
+      validCode: 'Use format like ABJ-1234',
+      invalidLogin: 'Incorrect username or password.',
+      demoUsers: 'Demo users: admin/admin123, gate/gate123, office/office123',
+      dashboardHeader: 'Operations overview',
+      noVehicles: 'No vehicles registered.',
+      status: 'Status',
+      lastUpdated: 'Last updated',
+      all: 'All',
+      byRole: 'Role access',
+      officeOnly: 'Office',
+      gateOnly: 'Gate',
+      adminOnly: 'Admin',
+      scanQueue: 'Scan queue',
+      released: 'Released',
+      awaitingReview: 'Awaiting review',
+      rejection: 'Rejected',
+      notRegistered: 'Not registered',
+      offline: 'Offline demo',
+      resetDemo: 'Reset demo data',
+      roleHint: 'Role access',
+      finished: 'Handed over',
+      noMatches: 'No vehicles match your search.'
+    },
+    ar: {
+      appName: 'بوابة',
+      subtitle: 'نظام استلام الطلاب',
+      loginTitle: 'لوحة الوصول المدرسية',
+      username: 'اسم المستخدم',
+      password: 'كلمة المرور',
+      signIn: 'تسجيل الدخول',
+      gate: 'البوابة',
+      board: 'اللوحة',
+      vehicles: 'المركبات',
+      log: 'السجل',
+      dashboard: 'لوحة التحكم',
+      logout: 'تسجيل الخروج',
+      autoRelease: 'عتبة التسليم التلقائي',
+      sound: 'تنبيهات صوتية',
+      search: 'ابحث عن مركبة أو ولي أمر أو طالب',
+      manualLookup: 'بحث يدوي',
+      simulateScan: 'محاكاة قراءة',
+      recentScans: 'آخر القراءات',
+      noScans: 'لا توجد قراءات بعد.',
+      release: 'تسليم',
+      hold: 'إيقاف',
+      registerVehicle: 'تسجيل مركبة',
+      plateArabic: 'اللوحة (بالعربية)',
+      plateCode: 'الرمز (ABJ-1234)',
+      guardianName: 'اسم ولي الأمر',
+      relation: 'العلاقة',
+      students: 'الأطفال',
+      addVehicle: 'إضافة مركبة',
+      save: 'حفظ',
+      overview: 'ملخص',
+      pendingReview: 'بانتظار المراجعة',
+      releasedToday: 'تم التسليم اليوم',
+      unknownPlates: 'لوحات غير معروفة',
+      avgConfidence: 'متوسط الدقة',
+      validCode: 'استخدم صيغة مثل ABJ-1234',
+      invalidLogin: 'اسم المستخدم أو كلمة المرور غير صحيحة.',
+      demoUsers: 'المستخدمون التجريبية: admin/admin123, gate/gate123, office/office123',
+      dashboardHeader: 'نظرة عامة على العمليات',
+      noVehicles: 'لا توجد مركبات مسجلة.',
+      status: 'الحالة',
+      lastUpdated: 'آخر تحديث',
+      all: 'الكل',
+      byRole: 'وصول حسب الدور',
+      officeOnly: 'المكتب',
+      gateOnly: 'البوابة',
+      adminOnly: 'الإدارة',
+      scanQueue: 'طابور القراءات',
+      released: 'تم التسليم',
+      awaitingReview: 'بانتظار المراجعة',
+      rejection: 'مرفوضة',
+      notRegistered: 'غير مسجلة',
+      offline: 'وضع تجريبي',
+      resetDemo: 'إعادة ضبط البيانات',
+      roleHint: 'صلاحيات الدور',
+      finished: 'تم التسليم',
+      noMatches: 'لا توجد مركبات تطابق البحث.'
+    }
+  };
+
+  function t(key) {
+    return (translations[state.lang] && translations[state.lang][key]) || key;
   }
-}
-:root[data-theme="dark"]{--bg:#10151C;--card:#1A222D;--fg:#EEF1F5;--mute:#9AA5B5;--line:#2C3745;--go-bg:#0F3A24;--wait-bg:#47340A;--stop-bg:#4A1A19;--none-bg:#2A3441;--shadow:0 18px 38px rgba(2,4,8,.4)}
-html{height:100%}
-*,*::before,*::after{box-sizing:border-box}
-body{
-  margin:0;
-  min-height:100%;
-  background:linear-gradient(180deg, #eff3f7 0%, var(--bg) 100%);
-  color:var(--fg);
-  font-family:'Readex Pro',system-ui,-apple-system,'Segoe UI',Tahoma,sans-serif;
-  line-height:1.55;
-  -webkit-font-smoothing:antialiased;
-  transition:background .2s ease;
-}
-button{font:inherit;color:inherit;cursor:pointer}
-:focus-visible{outline:3px solid var(--bus);outline-offset:2px;border-radius:8px}
-header{background:linear-gradient(180deg, #1E2733 0%, #1d2630 100%);color:#fff;position:sticky;top:env(safe-area-inset-top,0px);z-index:5;box-shadow:0 8px 30px rgba(26,31,38,.18)}
-.top{max-width:1100px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:12px;justify-content:space-between}
-.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.15rem}
-.brand i{width:30px;height:34px;border:3px solid var(--bus);border-radius:15px 15px 3px 3px;display:block;position:relative;box-shadow:0 0 22px rgba(255,199,44,.4)}
-.brand i::after{content:"";position:absolute;left:50%;top:6px;bottom:0;width:3px;background:var(--bus);transform:translateX(-50%)}
-.brand small{display:block;font-weight:300;font-size:.72rem;color:#B8C2D0;margin-top:-4px}
-.hb{display:flex;gap:8px;align-items:center}
-.pill{border:1.5px solid #46546A;background:rgba(255,255,255,.02);color:#fff;border-radius:999px;padding:8px 16px;font-size:.88rem;transition:all .2s ease}
-.pill:hover{border-color:#6d7a90;background:rgba(255,255,255,.06)}
-.live{display:flex;align-items:center;gap:6px;font-size:.85rem;color:#B8C2D0}
-.dot{width:9px;height:9px;border-radius:50%;background:var(--go);box-shadow:0 0 0 0 rgba(18,161,80,.7);animation:p 2s infinite}
-.live.off .dot{background:var(--none);animation:none}
-@keyframes p{70%{box-shadow:0 0 0 9px rgba(18,161,80,0)}100%{box-shadow:0 0 0 0 rgba(18,161,80,0)}}
-nav{max-width:1100px;margin:0 auto;display:flex;gap:2px;padding:0 10px;overflow-x:auto;scrollbar-width:none}
-nav::-webkit-scrollbar{display:none}
-nav button{background:none;border:0;color:#B8C2D0;padding:10px 14px;border-bottom:3px solid transparent;white-space:nowrap;font-weight:600;display:inline-flex;align-items:center;gap:6px;transition:color .2s ease,border-color .2s ease}
-nav button[aria-selected="true"]{color:#fff;border-color:var(--bus)}
-nav .badge{background:var(--bus);color:#2A1B00;border-radius:99px;font-size:.75rem;padding:1px 8px;margin-inline-start:4px;font-weight:700}
-main{max-width:1100px;margin:0 auto;padding:18px 16px 40px}
-.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:16px}
-@media(min-width:700px){.stats{grid-template-columns:repeat(4,1fr)}}
-.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow)}
-.stat b{font-size:1.9rem;line-height:1.1;display:block;font-variant-numeric:tabular-nums}
-.stat span{color:var(--mute);font-size:.85rem}
-.gate{display:grid;gap:16px}
-@media(min-width:860px){.gate{grid-template-columns:1.1fr .9fr}}
-.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:var(--shadow)}
-.card h2{margin:0 0 12px;font-size:1.05rem}
-.now{border-width:3px;transition:border-color .3s,background .3s,transform .2s ease}
-.now:hover{transform:translateY(-1px)}
-.now.released{border-color:var(--go);background:var(--go-bg)}
-.now.manual_review{border-color:var(--wait);background:var(--wait-bg)}
-.now.no_match,.now.rejected{border-color:var(--stop);background:var(--stop-bg)}
-.plate{display:inline-flex;align-items:stretch;border:3px solid #111;border-radius:10px;background:#fff;color:#111;direction:ltr;overflow:hidden;box-shadow:0 3px 0 rgba(0,0,0,.2)}
-.plate .a{background:#1B4EA8;color:#fff;font-size:.6rem;padding:4px 7px;display:grid;place-items:center;font-weight:700}
-.plate .t{padding:6px 16px;text-align:center;line-height:1.15}
-.plate .t b{display:block;font-size:1.9rem;letter-spacing:.06em;font-variant-numeric:tabular-nums}
-.plate .t span{font-size:1.05rem;direction:rtl;display:block}
-.sbadge{display:inline-block;border-radius:99px;padding:3px 12px;font-weight:600;font-size:.85rem}
-.s-released{background:var(--go-bg);color:var(--go)}
-.s-manual_review{background:var(--wait-bg);color:var(--wait)}
-.s-no_match,.s-rejected{background:var(--stop-bg);color:var(--stop)}
-.now .big{font-size:1.6rem;font-weight:700;margin:12px 0 2px}
-.kids{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
-.kid{background:var(--slate);color:#fff;border-radius:999px;padding:6px 14px;font-weight:500}
-.meta{color:var(--mute);font-size:.88rem}
-.bar{height:8px;background:var(--line);border-radius:9px;overflow:hidden;margin-top:6px;max-width:260px}.bar i{display:block;height:100%;background:linear-gradient(90deg, var(--slate), var(--bus));border-radius:9px}
-.actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
-.b{border:0;border-radius:12px;padding:12px 22px;font-weight:700;transition:filter .2s ease,transform .2s ease}
-.b:hover{filter:brightness(.98);transform:translateY(-1px)}
-.b.go{background:var(--go);color:#fff}.b.stop{background:var(--stop);color:#fff}.b.bus{background:var(--bus);color:#2A1B00}.b.ghost{background:transparent;border:1.5px solid var(--line)}
-.empty{color:var(--mute);padding:26px 0;text-align:center}
-.row{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
-.row:last-child{border:0}
-.row .m{flex:1;min-width:0}.row .m b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.row time{color:var(--mute);font-size:.8rem;white-space:nowrap}
-.mini{font-weight:700;direction:ltr;letter-spacing:.04em;background:#fff;color:#111;border:2px solid #111;border-radius:6px;padding:1px 8px;font-size:.9rem}
-.tools{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
-input,select{font:inherit;border:1.5px solid var(--line);background:var(--card);color:var(--fg);border-radius:12px;padding:10px 14px;min-width:0;transition:border-color .2s ease,box-shadow .2s ease}
-input:focus,select:focus{border-color:var(--bus);box-shadow:0 0 0 3px rgba(255,199,44,.18)}
-.tools input{flex:1;min-width:180px}
-form.add{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:6px}
-.toast{position:fixed;bottom:calc(18px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%) translateY(120px);background:var(--slate);color:#fff;padding:12px 20px;border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.2);display:flex;align-items:center;gap:12px;transition:transform .25s ease,opacity .25s ease;opacity:0;pointer-events:none;z-index:30}
-.toast.show{transform:translateX(-50%) translateY(0);opacity:1;pointer-events:auto}
-.note{font-size:.8rem;color:var(--mute);margin-top:16px}
-@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
-body{padding-bottom:76px}
-@media(min-width:700px){body{padding-bottom:0}}
-@media(max-width:699px){header nav{position:fixed;left:0;right:0;bottom:0;max-width:none;background:var(--slate);border-top:2px solid #324055;padding:0 0 env(safe-area-inset-bottom,0px);justify-content:space-between;box-shadow:0 -8px 24px rgba(0,0,0,.12)};header nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:0;padding:8px 2px 10px;font-size:.72rem;border-bottom:0;border-top:3px solid transparent;position:relative};header nav button .ic{font-size:1.35rem;line-height:1.2}header nav button[aria-selected="true"]{border-top-color:var(--bus)} nav .badge{position:absolute;top:2px;inset-inline-start:calc(50% + 8px);margin:0}}
-nav .ic{margin-inline-end:6px}@media(max-width:699px){nav .ic{margin:0}}
-#splash{position:fixed;inset:0;background:var(--slate);display:grid;place-items:center;z-index:50;transition:opacity .5s,visibility .5s,color .2s ease;text-align:center}
-#splash.hide{opacity:0;visibility:hidden}#splash i{width:70px;height:80px;border:6px solid var(--bus);border-radius:35px 35px 6px 6px;display:block;margin:0 auto 14px;position:relative;box-shadow:0 0 22px rgba(255,199,44,.3)}
-#splash i::after{content:"";position:absolute;left:50%;top:14px;bottom:0;width:6px;background:var(--bus);transform:translateX(-50%)}
-#splash b{font-size:1.8rem}
-.lk{display:flex;gap:8px;margin-top:14px}.lk input{flex:1;direction:ltr;text-transform:uppercase}
-.set{display:grid;gap:18px}.set label{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
-.set input[type=range]{width:min(260px,100%);padding:0;accent-color:#1E2733}
-.set input[type=checkbox]{width:24px;height:24px;accent-color:#12A150}
-.board{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(290px,1fr))}
-.bcard .kid{font-size:1.5rem;padding:8px 22px}.bcard .big{font-size:1.2rem}
-.bcard .actions .b{flex:1;font-size:1.05rem;padding:14px}
-.chart{display:flex;gap:6px;align-items:flex-end;height:120px;padding-top:16px}
-.chart div{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;font-size:.75rem;color:var(--mute);gap:3px}
-.chart i{width:100%;background:linear-gradient(180deg,#ffd970,#ffc72c);border-radius:5px 5px 0 0;min-height:3px;display:block}
-.chart span{font-size:.7rem}
-.ub{background:var(--bus);border:0;border-radius:999px;padding:4px 14px;font-weight:700;margin-inline-start:8px;color:#2A1B00}
-@media(max-width:699px){.toast{bottom:calc(84px + env(safe-area-inset-bottom,0px))}}
-body.live #sc{display:none}
+
+  function saveState() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      lang: state.lang,
+      user: state.user,
+      activeTab: state.activeTab,
+      query: state.query,
+      vehicles: state.vehicles,
+      scans: state.scans,
+      nextId: state.nextId,
+      threshold: state.threshold,
+      sound: state.sound
+    }));
+  }
+
+  function createId(prefix) {
+    state.nextId += 1;
+    saveState();
+    return prefix + '-' + state.nextId;
+  }
+
+  function updateVehicle(vehicle) {
+    const idx = state.vehicles.findIndex(v => v.id === vehicle.id);
+    if (idx >= 0) {
+      state.vehicles[idx] = vehicle;
+    } else {
+      state.vehicles.unshift(vehicle);
+    }
+    saveState();
+  }
+
+  function canAccess(role) {
+    if (!state.user) return false;
+    if (state.user.role === 'admin') return true;
+    if (role === 'gate') return state.user.role === 'gate' || state.user.role === 'admin';
+    if (role === 'office') return state.user.role === 'office' || state.user.role === 'admin';
+    return false;
+  }
+
+  function formatTime(ts) {
+    const date = new Date(ts);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function vehicleMatch(code) {
+    const normalized = String(code || '').trim().toUpperCase();
+    return state.vehicles.find(v => v.code.toUpperCase() === normalized);
+  }
+
+  function addScan(scan) {
+    state.scans.unshift(scan);
+    state.scans = state.scans.slice(0, 100);
+    saveState();
+  }
+
+  function simulateScan() {
+    const vehicle = state.vehicles[Math.floor(Math.random() * state.vehicles.length)];
+    const confidence = Math.random();
+    const scan = {
+      id: createId('scan'),
+      ts: Date.now(),
+      gate: 'G' + (Math.floor(Math.random() * 2) + 1),
+      code: vehicle.code,
+      raw: vehicle.raw,
+      guardian: vehicle.guardian,
+      relation: vehicle.relation,
+      students: vehicle.students,
+      confidence,
+      status: confidence >= state.threshold ? 'released' : 'manual_review',
+      reason: confidence >= state.threshold ? 'Matched plate' : 'Low confidence'
+    };
+    addScan(scan);
+    render();
+  }
+
+  function handleLookup(rawValue) {
+    const code = String(rawValue || '').trim().toUpperCase().replace(/\s+/g, '');
+    if (!code) return;
+
+    const vehicle = vehicleMatch(code);
+    const scan = {
+      id: createId('scan'),
+      ts: Date.now(),
+      gate: 'G1',
+      code,
+      raw: vehicle ? vehicle.raw : code,
+      guardian: vehicle ? vehicle.guardian : '',
+      relation: vehicle ? vehicle.relation : '',
+      students: vehicle ? vehicle.students : [],
+      confidence: 1,
+      status: vehicle ? 'released' : 'not_registered',
+      reason: vehicle ? 'Manual lookup' : 'No vehicle found'
+    };
+
+    addScan(scan);
+    render();
+  }
+
+  function handleDecision(scanId, approved) {
+    const target = state.scans.find(scan => scan.id === scanId);
+    if (!target) return;
+    target.status = approved ? 'released' : 'rejected';
+    target.reason = approved ? 'Approved by staff' : 'Held by staff';
+    saveState();
+    render();
+  }
+
+  function handleVehicleSubmit(event) {
+    event.preventDefault();
+    const form = new FormData(event.target);
+    const code = String(form.get('code') || '').trim().toUpperCase();
+    const guardian = String(form.get('guardian') || '').trim();
+    const students = String(form.get('students') || '').split(/[;,،]/).map(s => s.trim()).filter(Boolean);
+    const raw = String(form.get('raw') || '').trim();
+
+    if (!code || !guardian || !students.length) {
+      alert('Enter all vehicle details');
+      return;
+    }
+
+    if (!/^[A-Z]{1,3}-\d{1,5}$/.test(code)) {
+      alert(t('validCode'));
+      return;
+    }
+
+    if (state.vehicles.some(v => v.code.toUpperCase() === code)) {
+      alert('That vehicle already exists');
+      return;
+    }
+
+    const vehicle = {
+      id: createId('veh'),
+      raw: raw || code,
+      code,
+      guardian,
+      relation: form.get('relation') || 'Other',
+      students
+    };
+
+    state.vehicles.unshift(vehicle);
+    saveState();
+    render();
+  }
+
+  function renderLogin() {
+    app.innerHTML = `
+      <div class="login-shell">
+        <div class="login-card">
+          <div class="brand-block">
+            <div class="brand-mark"></div>
+            <div>
+              <div class="brand-name">${t('appName')}</div>
+              <div class="brand-sub">${t('subtitle')}</div>
+            </div>
+          </div>
+
+          <h1>${t('loginTitle')}</h1>
+          <form id="loginForm" class="login-form">
+            <label>
+              <span>${t('username')}</span>
+              <input name="username" type="text" required />
+            </label>
+            <label>
+              <span>${t('password')}</span>
+              <input name="password" type="password" required />
+            </label>
+            <button type="submit" class="primary-btn">${t('signIn')}</button>
+          </form>
+          <p class="demo-hint">${t('demoUsers')}</p>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('loginForm').addEventListener('submit', function (event) {
+      event.preventDefault();
+      const form = new FormData(event.target);
+      const username = String(form.get('username') || '').trim();
+      const password = String(form.get('password') || '').trim();
+      const user = DEMO_USERS.find(u => u.username === username && u.password === password);
+
+      if (!user) {
+        alert(t('invalidLogin'));
+        return;
+      }
+
+      state.user = user;
+      state.activeTab = 'gate';
+      saveState();
+      render();
+    });
+  }
+
+  function renderShell() {
+    const tabs = [
+      { id: 'gate', label: t('gate'), icon: '🚧', visible: canAccess('gate') },
+      { id: 'board', label: t('board'), icon: '📣', visible: canAccess('gate') },
+      { id: 'vehicles', label: t('vehicles'), icon: '🚗', visible: canAccess('admin') || canAccess('office') },
+      { id: 'log', label: t('log'), icon: '📋', visible: true },
+      { id: 'dashboard', label: t('dashboard'), icon: '📊', visible: canAccess('admin') || canAccess('office') }
+    ].filter(tab => tab.visible);
+
+    app.innerHTML = `
+      <header class="topbar">
+        <div class="shell container">
+          <div class="brand-block">
+            <div class="brand-mark"></div>
+            <div>
+              <div class="brand-name">${t('appName')}</div>
+              <div class="brand-sub">${t('subtitle')}</div>
+            </div>
+          </div>
+
+          <div class="header-actions">
+            <div class="user-badge">${state.user.role.toUpperCase()}</div>
+            <button id="logoutButton" class="ghost-btn">${t('logout')}</button>
+          </div>
+        </div>
+        <nav class="tabs container" aria-label="Main navigation">
+          ${tabs.map(tab => `
+            <button type="button" class="nav-tab ${state.activeTab === tab.id ? 'active' : ''}" data-tab="${tab.id}">
+              <span>${tab.icon}</span>
+              <span>${tab.label}</span>
+            </button>
+          `).join('')}
+        </nav>
+      </header>
+
+      <main class="container page">
+        ${renderCurrentView()}
+      </main>
+    `;
+
+    document.getElementById('logoutButton').addEventListener('click', () => {
+      state.user = null;
+      saveState();
+      render();
+    });
+
+    document.querySelectorAll('[data-tab]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.activeTab = btn.dataset.tab;
+        saveState();
+        render();
+      });
+    });
+  }
+
+  function renderCurrentView() {
+    if (!state.user) return renderLogin();
+
+    switch (state.activeTab) {
+      case 'board': return renderBoard();
+      case 'vehicles': return renderVehicles();
+      case 'log': return renderLog();
+      case 'dashboard': return renderDashboard();
+      default: return renderGate();
+    }
+  }
+
+  function renderGate() {
+    const current = state.scans[0];
+    const pending = state.scans.filter(scan => scan.status === 'manual_review').length;
+    const totalReleased = state.scans.filter(scan => scan.status === 'released').length;
+    const unknown = state.scans.filter(scan => scan.status === 'not_registered').length;
+    const avg = state.scans.length ? (state.scans.reduce((sum, scan) => sum + (scan.confidence || 0), 0) / state.scans.length * 100).toFixed(0) : 0;
+
+    return `
+      <section class="stats-grid">
+        <article class="stat-card">
+          <span>${t('releasedToday')}</span>
+          <strong>${totalReleased}</strong>
+        </article>
+        <article class="stat-card">
+          <span>${t('pendingReview')}</span>
+          <strong>${pending}</strong>
+        </article>
+        <article class="stat-card">
+          <span>${t('unknownPlates')}</span>
+          <strong>${unknown}</strong>
+        </article>
+        <article class="stat-card">
+          <span>${t('avgConfidence')}</span>
+          <strong>${avg}%</strong>
+        </article>
+      </section>
+
+      <section class="two-col">
+        <div class="panel detail-panel ${current ? current.status : ''}">
+          <h2>${t('gate')}</h2>
+          ${current ? `
+            <div class="plate-box">${current.code}</div>
+            <div class="detail-header">
+              <h3>${current.guardian || 'Unknown guardian'}</h3>
+              <span class="status-pill ${current.status}">${current.status}</span>
+            </div>
+            <p>${current.students && current.students.length ? current.students.join(', ') : '—'}</p>
+            <div class="confidence-bar"><i style="width:${Math.round((current.confidence || 0) * 100)}%"></i></div>
+            <div class="actions">
+              <button class="primary-btn" data-scan-action="release" data-scan-id="${current.id}">${t('release')}</button>
+              <button class="danger-btn" data-scan-action="hold" data-scan-id="${current.id}">${t('hold')}</button>
+            </div>
+          ` : `<p class="muted">${t('noScans')}</p>`}
+
+          <form id="manualLookupForm" class="lookup-form">
+            <input id="manualLookupInput" type="text" placeholder="${t('manualLookup')}" maxlength="12" />
+            <button type="submit" class="primary-btn">${t('save')}</button>
+          </form>
+
+          <div class="actions-row">
+            <button id="simulateScan" class="primary-btn">${t('simulateScan')}</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>${t('recentScans')}</h2>
+          <div class="scan-list">
+            ${state.scans.length ? state.scans.slice(0, 8).map(scan => `
+              <div class="scan-item ${scan.status}">
+                <div class="scan-head">
+                  <strong>${scan.code}</strong>
+                  <span>${formatTime(scan.ts)}</span>
+                </div>
+                <div class="scan-meta">${scan.guardian || 'Unknown'} · ${scan.status}</div>
+              </div>
+            `).join('') : `<p class="muted">${t('noScans')}</p>`}
+          </div>
+        </div>
+      </section>
+    `;
+
+    document.getElementById('manualLookupForm').addEventListener('submit', function (event) {
+      event.preventDefault();
+      const value = document.getElementById('manualLookupInput').value;
+      handleLookup(value);
+      document.getElementById('manualLookupInput').value = '';
+    });
+
+    document.getElementById('simulateScan').addEventListener('click', simulateScan);
+    document.querySelectorAll('[data-scan-action]').forEach(button => {
+      button.addEventListener('click', () => {
+        handleDecision(button.dataset.scanId, button.dataset.scanAction === 'release');
+      });
+    });
+  }
+
+  function renderBoard() {
+    const released = state.scans.filter(scan => scan.status === 'released');
+
+    return `
+      <div class="panel">
+        <h2>${t('board')}</h2>
+        ${released.length ? `
+          <div class="card-grid">
+            ${released.map(scan => `
+              <div class="board-card">
+                <div class="plate-box small">${scan.code}</div>
+                <h3>${scan.guardian || 'Unknown guardian'}</h3>
+                <p>${(scan.students || []).join(', ') || '—'}</p>
+                <button class="primary-btn" data-board-finish="${scan.id}">${t('finished')}</button>
+              </div>
+            `).join('')}
+          </div>
+        ` : `<p class="muted">${t('noScans')}</p>`}
+      </div>
+    `;
+
+    document.querySelectorAll('[data-board-finish]').forEach(button => {
+      button.addEventListener('click', () => {
+        const target = state.scans.find(scan => scan.id === button.dataset.boardFinish);
+        if (!target) return;
+        target.status = 'released';
+        target.reason = 'Completed';
+        saveState();
+        render();
+      });
+    });
+  }
+
+  function renderVehicles() {
+    const filtered = state.vehicles.filter(vehicle => {
+      if (!state.query) return true;
+      const haystack = [vehicle.code, vehicle.guardian, vehicle.students.join(' ')].join(' ').toLowerCase();
+      return haystack.includes(state.query.toLowerCase());
+    });
+
+    return `
+      <section class="panel">
+        <h2>${t('registerVehicle')}</h2>
+        <form id="vehicleForm" class="vehicle-form">
+          <input name="raw" type="text" placeholder="${t('plateArabic')}" />
+          <input name="code" type="text" placeholder="${t('plateCode')}" />
+          <input name="guardian" type="text" placeholder="${t('guardianName')}" />
+          <select name="relation">
+            <option value="Father">Father</option>
+            <option value="Mother">Mother</option>
+            <option value="Driver">Driver</option>
+            <option value="Relative">Relative</option>
+            <option value="Other">Other</option>
+          </select>
+          <input name="students" type="text" placeholder="${t('students')}" />
+          <button type="submit" class="primary-btn">${t('addVehicle')}</button>
+        </form>
+      </section>
+
+      <section class="panel">
+        <div class="list-header">
+          <h2>${t('vehicles')}</h2>
+          <input id="vehicleSearch" type="search" placeholder="${t('search')}" value="${state.query}" />
+        </div>
+
+        ${filtered.length ? `
+          <div class="table-list">
+            ${filtered.map(vehicle => `
+              <div class="table-row">
+                <div class="plate-box tiny">${vehicle.code}</div>
+                <div>
+                  <strong>${vehicle.guardian}</strong>
+                  <div class="muted">${vehicle.students.join(', ')}</div>
+                </div>
+                <button class="ghost-btn danger" data-delete-vehicle="${vehicle.id}">Remove</button>
+              </div>
+            `).join('')}
+          </div>
+        ` : `<p class="muted">${t('noMatches')}</p>`}
+      </section>
+    `;
+
+    document.getElementById('vehicleForm').addEventListener('submit', handleVehicleSubmit);
+    document.getElementById('vehicleSearch').addEventListener('input', (event) => {
+      state.query = event.target.value;
+      saveState();
+      render();
+    });
+
+    document.querySelectorAll('[data-delete-vehicle]').forEach(button => {
+      button.addEventListener('click', () => {
+        const id = button.dataset.deleteVehicle;
+        state.vehicles = state.vehicles.filter(vehicle => vehicle.id !== id);
+        saveState();
+        render();
+      });
+    });
+  }
+
+  function renderLog() {
+    return `
+      <section class="panel">
+        <h2>${t('log')}</h2>
+        <div class="chart-grid">
+          ${Array.from({ length: 10 }, (_, index) => {
+            const bucket = state.scans.filter(scan => {
+              const age = Date.now() - scan.ts;
+              const minute = 60 * 1000;
+              return age >= (index * minute) && age < ((index + 1) * minute);
+            }).length;
+            const percentage = 20 + (bucket * 25);
+            return `
+              <div class="bar-column">
+                <span>${bucket}</span>
+                <i style="height:${percentage}%"></i>
+              </div>
+            `;
+          }).join('')}
+        </div>
+        <div class="scan-log">
+          ${state.scans.length ? state.scans.slice(0, 12).map(scan => `
+            <div class="log-row">
+              <span>${scan.code}</span>
+              <span>${scan.status}</span>
+              <span>${formatTime(scan.ts)}</span>
+            </div>
+          `).join('') : `<p class="muted">${t('noScans')}</p>`}
+        </div>
+      </section>
+    `;
+  }
+
+  function renderDashboard() {
+    const totalVehicles = state.vehicles.length;
+    const totalScans = state.scans.length;
+    const released = state.scans.filter(scan => scan.status === 'released').length;
+    const pending = state.scans.filter(scan => scan.status === 'manual_review').length;
+
+    return `
+      <section class="panel">
+        <h2>${t('dashboardHeader')}</h2>
+        <div class="stats-grid">
+          <article class="stat-card">
+            <span>${t('vehicles')}</span>
+            <strong>${totalVehicles}</strong>
+          </article>
+          <article class="stat-card">
+            <span>${t('releasedToday')}</span>
+            <strong>${released}</strong>
+          </article>
+          <article class="stat-card">
+            <span>${t('pendingReview')}</span>
+            <strong>${pending}</strong>
+          </article>
+          <article class="stat-card">
+            <span>${t('log')}</span>
+            <strong>${totalScans}</strong>
+          </article>
+        </div>
+
+        <div class="role-grid">
+          <div class="mini-panel">
+            <h3>${t('byRole')}</h3>
+            <ul>
+              <li>${t('adminOnly')} · Admin access</li>
+              <li>${t('gateOnly')} · Gate release flow</li>
+              <li>${t('officeOnly')} · Vehicle / log overview</li>
+            </ul>
+          </div>
+          <div class="mini-panel">
+            <h3>${t('roleHint')}</h3>
+            <p>${t('demoUsers')}</p>
+            <button id="resetDemoButton" class="ghost-btn">${t('resetDemo')}</button>
+          </div>
+        </div>
+      </section>
+    `;
+
+    document.getElementById('resetDemoButton')?.addEventListener('click', () => {
+      state.vehicles = DEMO_VEHICLES;
+      state.scans = [];
+      state.nextId = 200;
+      state.threshold = 0.9;
+      saveState();
+      render();
+    });
+  }
+
+  function render() {
+    if (!state.user) {
+      renderLogin();
+      return;
+    }
+
+    renderShell();
+  }
+
+  if (state.user) render(); else renderLogin();
+})();
